@@ -1,0 +1,171 @@
+[build-system]
+requires = ["hatchling>=1.8.0", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "openapi-llm"
+dynamic = ["version"]
+description = "Convert and invoke OpenAPI specifications as LLM tool/function definitions"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.8"
+authors = [{ name = "Vladimir Blagojevic", email = "dovlex@gmail.com" }]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = ["pydantic"]
+
+[project.urls]
+"Homepage" = "https://github.com/vblagoje/openapi-llm"
+"Bug Tracker" = "https://github.com/vblagoje/openapi-llm/issues"
+"Source Code" = "https://github.com/vblagoje/openapi-llm"
+
+[tool.hatch.envs.default]
+installer = "uv"
+dependencies = [
+  "pre-commit",
+  "mypy",
+  "pip",
+  "pytest",
+  "pytest-rerunfailures",
+  "pytest-cov",
+  "pytest-bdd",
+  "pytest-asyncio",
+  "pylint",
+  "ruff",
+]
+
+[tool.hatch.envs.test]
+extra-dependencies = [
+  # OpenAPI dependencies
+  "jsonref",
+  # OpenAPI tests
+  "cohere",
+  "anthropic",
+  "openai",
+  "fastapi",
+  # Tools support
+  "jsonschema",
+]
+
+[tool.hatch.envs.test.scripts]
+unit = 'pytest --cov-report xml:coverage.xml --cov="openapi_llm" -m "not integration" {args:test}'
+integration = 'pytest --reruns 3 --reruns-delay 60 -x --maxfail=5 -m "integration and not unstable" {args:test}'
+typing = "mypy --install-types --non-interactive {args:openapi_llm}"
+lint = [
+  "ruff check {args:openapi_llm}",
+  "pylint -ry -j 0 {args:openapi_llm}",
+]
+test-cov = "coverage run -m pytest -m \"not unstable\" {args:test}"
+cov-report = ["- coverage combine", "coverage xml"]
+cov = ["test-cov", "cov-report"]
+
+[tool.hatch.version]
+source = "vcs"
+tag-pattern = 'v(?P<version>.*)'
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.sdist]
+include = ["/openapi_llm"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["openapi_llm"]
+
+[tool.codespell]
+ignore-words-list = "ans,astroid,nd,ned,nin,ue,rouge,ist"
+quiet-level = 3
+skip = "test/nodes/*,test/others/*,test/samples/*,e2e/*"
+
+[tool.pylint]
+ignore-paths = ["openapi_llm/__init__.py"]
+
+[tool.pylint.'MESSAGES CONTROL']
+max-line-length = 120
+disable = [
+  "C0114", # missing-module-docstring
+  "R0903", # too-few-public-methods
+  "fixme",
+  "c-extension-no-member",
+]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "--strict-markers"
+markers = [
+  "integration: integration tests",
+  "unstable(reason): Mark tests that are unstable or depend on unreliable services.",
+]
+log_cli = true
+asyncio_mode = "auto"
+
+[tool.mypy]
+warn_return_any = false
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py38"
+exclude = ["test", ".github"]
+
+[tool.ruff.lint]
+select = [
+  "ASYNC", # flake8-async
+  "C4",    # flake8-comprehensions
+  "C90",   # McCabe cyclomatic complexity
+  "E501",  # Long lines
+  "EXE",   # flake8-executable
+  "F",     # Pyflakes
+  "INT",   # flake8-gettext
+  "PERF",  # Perflint
+  "PL",    # Pylint
+  "Q",     # flake8-quotes
+  "SIM",   # flake8-simplify
+  "SLOT",  # flake8-slots
+  "T10",   # flake8-debugger
+  "W",     # pycodestyle
+  "YTT",   # flake8-2020
+  "I",     # isort
+  # built-in shadowing
+  "A001", # builtin-variable-shadowing
+  "A002", # builtin-argument-shadowing
+  "A003", # builtin-attribute-shadowing
+  # docstring rules
+  "D102", # Missing docstring in public method
+  "D103", # Missing docstring in public function
+  "D209", # Closing triple quotes go to new line
+  "D205", # 1 blank line required between summary line and description
+  "D213", # summary lines must be positioned on the second physical line of the docstring
+  "D417", # undocumented-parameter
+  "D419", # undocumented-returns
+]
+
+ignore = [
+  "F401",    # unused-import
+  "PERF203", # `try`-`except` within a loop incurs performance overhead
+  "PERF401", # Use a list comprehension to create a transformed list
+  "PLR1714", # repeated-equality-comparison
+  "PLR5501", # collapsible-else-if
+  "PLW0603", # global-statement
+  "PLW1510", # subprocess-run-without-check
+  "PLW2901", # redefined-loop-name
+  "SIM108",  # if-else-block-instead-of-if-exp
+  "SIM115",  # open-file-with-context-handler
+  "SIM118",  # in-dict-keys
+  "PLR0913", # too-many-arguments
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 28

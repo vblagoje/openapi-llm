@@ -1,0 +1,136 @@
+name: Tests
+
+on:
+  # Activate this workflow manually
+  workflow_dispatch:
+
+  # Run tests nightly against Haystack's main branch
+  schedule:
+    - cron: "0 0 * * *"
+
+  push:
+    branches:
+      - main
+
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+    paths:
+      - "openapi_llm/**/*.py"
+      - "test/**/*.py"
+      - "pyproject.toml"
+      - ".github/workflows/tests.yml"
+
+env:
+  PYTHON_VERSION: "3.9"
+  HATCH_VERSION: "1.13.0"
+  PYTHONUNBUFFERED: "1"
+  FORCE_COLOR: "1"
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  COHERE_API_KEY: ${{ secrets.COHERE_API_KEY }}
+  FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+  SERPERDEV_API_KEY: ${{ secrets.SERPERDEV_API_KEY }}
+  HF_API_TOKEN: ${{ secrets.HF_API_TOKEN }}
+  OLLAMA_LLM_FOR_TESTS: "llama3.2:3b"
+
+jobs:
+  linting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "${{ env.PYTHON_VERSION }}"
+
+      - name: Install Hatch
+        run: pip install hatch==${{ env.HATCH_VERSION }}
+
+      - name: Check code format
+        run: hatch fmt
+
+      - name: Linting
+        run: hatch run test:lint
+
+      - name: Typing
+        run: hatch run test:typing
+
+  unit-tests:
+    name: Unit / ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "${{ env.PYTHON_VERSION }}"
+
+      - name: Install Hatch
+        run: pip install hatch==${{ env.HATCH_VERSION }}
+
+      - name: Run
+        run: hatch run test:unit
+
+      - name: Coveralls
+        # We upload only coverage for ubuntu as handling both os
+        # complicates the workflow too much for little to no gain
+        if: matrix.os == 'ubuntu-latest'
+        uses: coverallsapp/github-action@v2
+        with:
+          path-to-lcov: coverage.xml
+
+  integration-tests:
+    name: Integration / ${{ matrix.os }}
+    needs: linting
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "${{ env.PYTHON_VERSION }}"
+
+      - name: Install Hatch
+        run: pip install hatch==${{ env.HATCH_VERSION }}
+
+      - name: Install Ollama and pull the required models
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          ollama serve &
+
+          # Check if the service is up and running with a timeout of 60 seconds
+          timeout=60
+          while [ $timeout -gt 0 ] && ! curl -sSf http://localhost:11434/ > /dev/null; do
+            echo "Waiting for Ollama service to start..."
+            sleep 5
+            ((timeout-=5))
+          done
+
+          if [ $timeout -eq 0 ]; then
+            echo "Timed out waiting for Ollama service to start."
+            exit 1
+          fi
+
+          ollama pull ${{ env.OLLAMA_LLM_FOR_TESTS }}
+
+      - name: Run
+        run: hatch run test:integration
