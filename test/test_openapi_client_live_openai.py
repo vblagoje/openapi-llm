@@ -38,6 +38,40 @@ class TestClientLiveOpenAPI:
         service_response = service_api.invoke(response)
         assert "American" in str(service_response)
 
+    @pytest.mark.skipif(not os.environ.get("SERPERDEV_API_KEY", ""), reason="SERPERDEV_API_KEY not set or empty")
+    @pytest.mark.skipif(not os.environ.get("OPENAI_API_KEY", ""), reason="OPENAI_API_KEY not set or empty")
+    @pytest.mark.integration
+    def test_serperdev_json_spec(self, test_files_path):
+
+        config = ClientConfig(openapi_spec=create_openapi_spec(test_files_path / "json" / "serperdev_openapi_spec.json"),
+                                     credentials=os.getenv("SERPERDEV_API_KEY"))
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": "Do a serperdev google search: Who was Nikola Tesla?"}],
+            tools=config.get_tool_definitions(),
+        )
+        service_api = OpenAPIClient(config)
+        service_response = service_api.invoke(response)
+        assert "inventions" in str(service_response)
+
+    @pytest.mark.skipif(not os.environ.get("SERPERDEV_API_KEY", ""), reason="SERPERDEV_API_KEY not set or empty")
+    @pytest.mark.skipif(not os.environ.get("OPENAI_API_KEY", ""), reason="OPENAI_API_KEY not set or empty")
+    @pytest.mark.integration
+    def test_serperdev_json_spec_url(self):
+
+        config = ClientConfig(openapi_spec=create_openapi_spec("https://bit.ly/serperdev_openapi"),
+                              credentials=os.getenv("SERPERDEV_API_KEY"))
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": "Do a serperdev google search: Who was Nikola Tesla?"}],
+            tools=config.get_tool_definitions(),
+        )
+        service_api = OpenAPIClient(config)
+        service_response = service_api.invoke(response)
+        assert "inventions" in str(service_response)
+
     @pytest.mark.skipif(not os.environ.get("OPENAI_API_KEY", ""), reason="OPENAI_API_KEY not set or empty")
     @pytest.mark.integration
     @pytest.mark.unstable("This test hits rate limit on Github API.")
@@ -45,7 +79,7 @@ class TestClientLiveOpenAPI:
         config = ClientConfig(openapi_spec=create_openapi_spec(test_files_path / "yaml" / "github_compare.yml"))
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o",
             messages=[
                 {
                     "role": "user",
