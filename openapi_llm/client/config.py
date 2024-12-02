@@ -25,7 +25,7 @@ class ClientConfig:
         credentials: Optional[Any] = None,
         request_sender: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
         llm_provider: Optional[LLMProvider] = None,
-        operations_filter: Optional[Callable[[Dict[str, Any]], bool]] = None,
+        allowed_operations: Optional[List[str]] = None,
     ):
         """
         Initialize client configuration.
@@ -34,7 +34,7 @@ class ClientConfig:
         :param credentials: Authentication credentials.
         :param request_sender: Custom function for sending HTTP requests.
         :param llm_provider: LLM provider implementation to use.
-        :param operations_filter: Deprecated. Use converter_config instead.
+        :param allowed_operations: a list of operationIds to be converted to tools
         :param converter_config: Configuration for OpenAPI to LLM function conversion.
         :raises ValueError: If the OpenAPI specification format is invalid.
         """
@@ -42,7 +42,9 @@ class ClientConfig:
         self.credentials = credentials
         self.request_sender = request_sender or send_request
         self.llm_provider = llm_provider or OpenAIProvider()
-        self.converter_config = ConverterConfig(filter_fn=operations_filter)
+        self.converter_config = ConverterConfig(
+            filter_fn=lambda f: f["operationId"] in allowed_operations
+        ) if allowed_operations else None
 
     def get_authenticator(self) -> Callable[[Dict[str, Any], Dict[str, Any]], Any]:
         """
