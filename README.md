@@ -129,7 +129,7 @@ hatch run test:lint
 
 ## License
 
-Apache License 2.0 - See [LICENSE](LICENSE) for details.
+MIT License - See [LICENSE](LICENSE) for details.
 
 ## Security
 
@@ -141,4 +141,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Author
 Vladimir Blagojevic (dovlex@gmail.com)
+
 Reviews and guidance by Madeesh Kannan

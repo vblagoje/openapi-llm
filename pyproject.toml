@@ -24,7 +24,6 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-  "pydantic",
   "jsonref",
   "requests",
   "PyYAML"
@@ -59,8 +58,6 @@ extra-dependencies = [
   "anthropic",
   "openai",
   "fastapi",
-  # Tools support
-  "jsonschema",
 ]
 
 [tool.hatch.envs.test.scripts]
