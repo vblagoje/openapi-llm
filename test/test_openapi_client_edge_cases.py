@@ -53,4 +53,52 @@ class TestEdgeCases:
         assert op.get_server() == "https://inoperation.example.com"
         op = config.openapi_spec.find_operation_by_id("missing_operation_id_get")
         assert op.get_server() == "http://localhost"
+
+    def test_allowed_operations(self):
+         """
+         Although the tool definition is generated from the OpenAPI spec and 
+         firecrawl's API has multiple operations, only the ones we specify in the 
+         allowed_operations list are registered with LLMs via the tool definition.
+         """
+         
+         spec="https://raw.githubusercontent.com/mendableai/firecrawl/main/apps/api/openapi.json"
+         
+         config = ClientConfig(
+             openapi_spec=create_openapi_spec(spec),
+             request_sender=FastAPITestClient(None),
+             allowed_operations=["scrape"],
+         )
+         tools = config.get_tool_definitions()
+         assert len(tools) == 1
+         assert tools[0]["function"]["name"] == "scrape"
+
+         # test two operations
+         config = ClientConfig(
+             openapi_spec=create_openapi_spec(spec),
+             request_sender=FastAPITestClient(None),
+             allowed_operations=["scrape", "crawlUrls"],
+         )
+         tools = config.get_tool_definitions()
+         assert len(tools) == 2
+         assert tools[0]["function"]["name"] == "scrape"
+         assert tools[1]["function"]["name"] == "crawlUrls"
+
+         # test non-existent operation
+         config = ClientConfig(
+             openapi_spec=create_openapi_spec(spec),
+             request_sender=FastAPITestClient(None),
+             allowed_operations=["scrape", "non-existent-operation"],
+         )
+         tools = config.get_tool_definitions()
+         assert len(tools) == 1
+         assert tools[0]["function"]["name"] == "scrape"
+
+         # test all non-existent operations
+         config = ClientConfig(
+             openapi_spec=create_openapi_spec(spec),
+             request_sender=FastAPITestClient(None),
+             allowed_operations=["non-existent-operation", "non-existent-operation-2"],
+         )
+         tools = config.get_tool_definitions()
+         assert len(tools) == 0    
     
