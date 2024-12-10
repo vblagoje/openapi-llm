@@ -78,7 +78,6 @@ This example demonstrates:
 
 - Python >= 3.8
 - Dependencies:
-  - pydantic
   - jsonref
   - requests
   - PyYAML
