@@ -1,0 +1,37 @@
+name: Generate PR description
+
+on:
+  pull_request_target:
+    types: [opened]
+
+jobs:
+  generate-pr-description:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Generate PR description for this PR and update the PR web page
+      uses: vblagoje/pr-auto@v1
+      id: pr-auto-step
+      with:
+        openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+
+    - name: Update PR description
+      uses: vblagoje/update-pr@v1
+      with:
+        pr-body: ${{steps.pr-auto-step.outputs.pr-text}}
+
+  set-reno-condition:
+    runs-on: ubuntu-latest
+    outputs:
+      generate-release-note: ${{ steps.set-output.outputs.generate-release-note }}
+    steps:
+      - name: Set generate-release-note output
+        id: set-output
+        run: |
+          labels=$(jq -r '.pull_request.labels[].name' <<<"$GITHUB_EVENT")
+          if echo "$labels" | grep -q "ignore-for-release-notes"; then
+            echo "::set-output name=generate-release-note::false"
+          else
+            echo "::set-output name=generate-release-note::true"
+          fi
+        env:
+          GITHUB_EVENT: ${{ toJson(github.event) }}

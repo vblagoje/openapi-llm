@@ -1,18 +1,6 @@
-### Related Issues
+## Automatic PR Text Generation
+🚀 An auto-generated PR description will appear shortly after opening the PR. Feel free to modify it as needed.
 
-- fixes #issue-number
+📝 Guide the automated process by giving instructions to @auto-pr-bot
 
-### Proposed Changes:
-
- <!--- In case of a bug: Describe what caused the issue and how you solved it -->
- <!--- In case of a feature: Describe what did you add and how it works -->
-
-### How did you test it?
-
-<!-- unit tests, integration tests, manual verification, instructions for manual tests -->
-
-### Notes for the reviewer
-
-<!-- E.g. point out section where the reviewer  -->
-
-### Checklist
+👍 Go ahead and click "Create pull request". The tailored PR description will be ready soon!
