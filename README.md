@@ -1,19 +1,43 @@
 # OpenAPI-LLM
 
-A Python library that converts OpenAPI specifications into LLM tool/function definitions, enabling OpenAPI invocations through Large Language Models generated tool calls.
+[![PyPI](https://img.shields.io/pypi/v/openapi-llm)](https://pypi.org/project/openapi-llm/)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/openapi-llm?color=blue&logo=pypi&logoColor=gold)](https://pypi.org/project/openapi-llm/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/openapi-llm?logo=python&logoColor=gold)](https://pypi.org/project/openapi-llm/)
+[![Tests](https://github.com/vblagoje/openapi-llm/actions/workflows/tests.yml/badge.svg)](https://github.com/vblagoje/openapi-llm/actions/workflows/tests.yml)
+[![Coverage Status](https://coveralls.io/repos/github/vblagoje/openapi-llm/badge.svg)](https://coveralls.io/github/vblagoje/openapi-llm)
+[![GitHub](https://img.shields.io/github/license/vblagoje/openapi-llm?color=blue)](LICENSE)
+
+A Python library that converts OpenAPI specifications into Large Language Model (LLM) tool/function definitions, enabling OpenAPI invocations through LLM generated tool calls.
+
+## Table of Contents
+- [Features](#features)
+- [Installation](#installation)
+- [Library Scope](#library-scope)
+- [Quick Start](#quick-start)
+- [Requirements](#requirements)
+- [Development Setup](#development-setup)
+- [Testing](#testing)
+- [License](#license)
+- [Security](#security)
+- [Contributing](#contributing)
 
 ## Features
 
 - Convert OpenAPI specifications into LLM-compatible tool/function definitions
 - Support for multiple LLM providers (OpenAI, Anthropic, Cohere)
 - Handle complex request bodies and parameter types
-- Flexible authentication mechanisms
+- Support for multiple authentication mechanisms
+- Support for OpenAPI 3.0.x and 3.1.x specifications
+- Handles both YAML and JSON OpenAPI specifications
 
 ## Installation
 
 ```bash
 pip install openapi-llm
 ```
+
+### Supported Python Versions
+- Python >= 3.8
 
 ### LLM Provider Dependencies
 
@@ -33,6 +57,26 @@ pip install cohere
 ## Library Scope
 
 OpenAPI-LLM provides core functionality for converting OpenAPI specifications into LLM-compatible tool/function definitions. It intentionally does not provide an opinionated, high-level interface for OpenAPI-LLM interactions. Users are encouraged to develop their own thin application layer above this library that suits their specific needs and preferences for OpenAPI-LLM integration.
+
+### OpenAPI Specification Validation
+
+This library does not perform OpenAPI specification validation. It is the user's responsibility to ensure that the provided OpenAPI specifications are valid. We recommend using established validation tools such as:
+
+- [openapi-spec-validator](https://github.com/p1c2u/openapi-spec-validator)
+- [prance](https://github.com/RonnyPfannschmidt/prance)
+- [Swagger Editor](https://editor.swagger.io/)
+
+Example of validating a spec before using it with openapi-llm:
+
+```python
+from openapi_spec_validator import validate_spec
+import yaml
+
+# Load and validate your OpenAPI spec
+with open('your_spec.yaml', 'r') as f:
+    spec_dict = yaml.safe_load(f)
+validate_spec(spec_dict)
+```
 
 ## Quick Start
 
