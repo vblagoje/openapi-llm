@@ -128,3 +128,31 @@ class TestClientLiveOpenAPI:
         assert service_response.get("success", False), "Firecrawl search API call failed"
         assert len(service_response.get("data", [])) == top_k
         assert "Sam" in str(service_response)
+
+    @pytest.mark.integration
+    @pytest.mark.skipif(not os.environ.get("OPENAI_API_KEY", ""), reason="OPENAI_API_KEY not set or empty")
+    @pytest.mark.skipif(not os.environ.get("TOMTOM_API_KEY", ""), reason="TOMTOM_API_KEY not set or empty")
+    def test_tomtom(self, test_files_path):
+
+        # LLM can't accept the original operation name with {} and other special characters, 
+        # so we need to normalize it, see normalize_operation_name in utils.py
+        target_operation = "search_versionNumber_categorySearch_query_ext__get"
+        spec="https://raw.githubusercontent.com/APIs-guru/openapi-directory/main/APIs/tomtom.com/search/1.0.0/openapi.yaml"
+        config = ClientConfig(openapi_spec=create_openapi_spec(spec),
+                              credentials=os.getenv("TOMTOM_API_KEY"),
+                              allowed_operations=["search_versionNumber_categorySearch_query_ext__get"])
+
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": "Search for pizza in San Francisco, US and don't use long/lat"}],
+            tools=config.get_tool_definitions(),
+        )
+        api = OpenAPIClient(config)
+        service_response = api.invoke(response)
+
+        # verify that we get some valid response
+        assert isinstance(service_response, dict)
+        assert "pizza" in str(service_response)
+        assert "summary" in str(service_response)
+        assert "countrySubdivisionCode" in str(service_response)
