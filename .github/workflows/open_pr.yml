@@ -12,6 +12,7 @@ jobs:
       uses: vblagoje/pr-auto@v1
       id: pr-auto-step
       with:
+        system_prompt: https://bit.ly/pr_auto
         openai_api_key: ${{ secrets.OPENAI_API_KEY }}
 
     - name: Update PR description
