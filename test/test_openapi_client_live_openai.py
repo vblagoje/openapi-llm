@@ -23,7 +23,7 @@ class TestClientLiveOpenAPI:
                                      credentials=os.getenv("SERPERDEV_API_KEY"))
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o",
             messages=[{"role": "user", "content": "Do a serperdev google search: Who was Nikola Tesla?"}],
             tools=config.get_tool_definitions(),
         )
@@ -108,7 +108,7 @@ class TestClientLiveOpenAPI:
         config = ClientConfig(openapi_spec=create_openapi_spec(openapi_spec_url), credentials=os.getenv("FIRECRAWL_API_KEY"))
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o",
             messages=[{"role": "user", "content": "Scrape URL: https://news.ycombinator.com/"}],
             tools=config.get_tool_definitions(),
         )
@@ -122,7 +122,7 @@ class TestClientLiveOpenAPI:
             # Only proceed with search test if scrape was successful
             top_k = 2
             response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4o",
                 messages=[
                     {
                         "role": "user",
