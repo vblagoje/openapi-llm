@@ -9,6 +9,7 @@ import pytest
 from openapi_llm.client.config import ClientConfig
 from openapi_llm.client.openapi import OpenAPIClient
 from openapi_llm.core.provider import LLMProvider
+from openapi_llm.providers.cohere import CohereProvider
 from .conftest import create_openapi_spec
 
 # Copied from Cohere's documentation
@@ -33,7 +34,7 @@ class TestClientLiveCohere:
     def test_serperdev(self, test_files_path):
         config = ClientConfig(openapi_spec=create_openapi_spec(test_files_path / "yaml" / "serper.yml"),
                                      credentials=os.getenv("SERPERDEV_API_KEY"),
-                                     llm_provider=LLMProvider.COHERE)
+                                     llm_provider=CohereProvider())        
         client = cohere.Client(api_key=os.getenv("COHERE_API_KEY"))
         response = client.chat(
             model="command-r",
@@ -57,7 +58,7 @@ class TestClientLiveCohere:
     @pytest.mark.unstable("This test hits rate limit on Github API.")
     def test_github(self, test_files_path):
         config = ClientConfig(openapi_spec=create_openapi_spec(test_files_path / "yaml" / "github_compare.yml"),
-                                     llm_provider=LLMProvider.COHERE)
+                                     llm_provider=CohereProvider())
 
         client = cohere.Client(api_key=os.getenv("COHERE_API_KEY"))
         response = client.chat(
