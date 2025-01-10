@@ -163,3 +163,13 @@ class TestOpenAPISchemaConversion:
                 "required": True,
             },
         }
+
+    def test_parameterless(self, test_files_path):
+        spec = OpenAPISpecification.from_file(test_files_path / "yaml" / "parameterless.yml")
+        functions = cohere_converter(schema=spec)
+        assert functions
+        assert len(functions) == 1
+        function = functions[0]
+        assert function["name"] == "getBatchStatus"
+        assert function["description"] == "Get the status of all batch jobs"
+        assert function["parameter_definitions"] == {}

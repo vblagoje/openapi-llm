@@ -104,3 +104,19 @@ class TestOpenAPISchemaConversion:
                 "required": ["transaction_amount", "description", "payment_method_id", "payer"],
             }
         )
+
+    @pytest.mark.parametrize("provider", ["openai", "anthropic"])
+    def test_parameterless(self, test_files_path, provider: str):
+        spec = OpenAPISpecification.from_file(test_files_path / "yaml" / "parameterless.yml")
+        functions = openai_converter(schema=spec) if provider == "openai" else anthropic_converter(schema=spec)
+        assert functions
+        assert len(functions) == 1
+        function = functions[0]["function"] if provider == "openai" else functions[0]
+        assert function["name"] == "getBatchStatus"
+        assert function["description"] == "Get the status of all batch jobs"
+        assert (
+            function["parameters"]
+            if provider == "openai"
+            else function["input_schema"]
+            == {"type": "object", "properties": {}}
+        )

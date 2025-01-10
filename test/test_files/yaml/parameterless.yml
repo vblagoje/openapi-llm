@@ -1,0 +1,23 @@
+openapi: 3.0.0
+info:
+  title: Parameterless API
+  version: 1.0.0
+  description: API with parameterless endpoints
+servers:
+  - url: https://api.example.com
+paths:
+  /status:
+    get:
+      operationId: getBatchStatus
+      description: Get the status of all batch jobs
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [idle, processing, completed]
