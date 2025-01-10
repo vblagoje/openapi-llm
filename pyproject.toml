@@ -26,7 +26,8 @@ classifiers = [
 dependencies = [
   "jsonref",
   "requests",
-  "PyYAML"
+  "PyYAML",
+  "aiohttp"
 ]
 
 [project.urls]

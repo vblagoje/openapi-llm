@@ -80,7 +80,9 @@ validate_spec(spec_dict)
 
 ## Quick Start
 
-Here's a practical example using OpenAI to perform a Google search via SerperDev API:
+The library provides both synchronous and asynchronous clients for working with OpenAPI specifications.
+
+### Sync Client
 
 ```python
 import os
@@ -112,7 +114,97 @@ service_api = OpenAPIClient(config)
 service_response = service_api.invoke(response)
 ```
 
-This example demonstrates:
+### Async Client
+
+The library provides several patterns for asynchronous operations:
+
+#### 1. Using async context manager (recommended):
+
+```python
+import os
+import asyncio
+from openai import AsyncOpenAI
+
+from openapi_llm.client.config import ClientConfig
+from openapi_llm.client.openapi_async import AsyncOpenAPIClient
+from openapi_llm.core.spec import OpenAPISpecification
+
+
+async def main():
+    # Configure the OpenAPI client with SerperDev API spec and credentials
+    config = ClientConfig(
+        openapi_spec=OpenAPISpecification.from_url("https://bit.ly/serperdev_openapi"), 
+        credentials=os.getenv("SERPERDEV_API_KEY")
+    )
+
+    # Initialize async OpenAI client
+    client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    # Create a chat completion with tool definitions
+    response = await client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": "Do a serperdev google search: Who was Nikola Tesla?"}],
+        tools=config.get_tool_definitions(),
+    )
+
+    # Execute the API call based on the LLM's response
+    async with AsyncOpenAPIClient(config) as service_api:
+        service_response = await service_api.invoke(response)
+
+# Run the async function
+asyncio.run(main())
+```
+
+#### 2. Using setup/cleanup methods:
+
+```python
+async def main():
+    config = ClientConfig(
+        openapi_spec=OpenAPISpecification.from_url("https://bit.ly/serperdev_openapi"), 
+        credentials=os.getenv("SERPERDEV_API_KEY")
+    )
+    client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    response = await client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": "Do a serperdev google search: Who was Nikola Tesla?"}],
+        tools=config.get_tool_definitions(),
+    )
+
+    # Create and set up the client
+    service_api = AsyncOpenAPIClient(config)
+    await service_api.setup()
+
+    try:
+        service_response = await service_api.invoke(response)
+    finally:
+        await service_api.cleanup()
+```
+
+#### 3. Using a shared aiohttp session:
+
+```python
+import aiohttp
+
+async def main():
+    config = ClientConfig(
+        openapi_spec=OpenAPISpecification.from_url("https://bit.ly/serperdev_openapi"), 
+        credentials=os.getenv("SERPERDEV_API_KEY")
+    )
+    client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    response = await client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": "Do a serperdev google search: Who was Nikola Tesla?"}],
+        tools=config.get_tool_definitions(),
+    )
+
+    # Use a shared session
+    async with aiohttp.ClientSession() as session:
+        service_api = AsyncOpenAPIClient(config)
+        await service_api.setup(session=session)
+        service_response = await service_api.invoke(response)
+```
+
+These examples demonstrate:
 - Loading an OpenAPI specification from a URL
 - Integrating with OpenAI's function calling
 - Handling API authentication
