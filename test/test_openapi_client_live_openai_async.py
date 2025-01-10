@@ -3,6 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+import sys
+import asyncio
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 import pytest
 from openai import AsyncOpenAI
@@ -15,6 +19,12 @@ from .conftest import create_openapi_spec
 
 @pytest.mark.asyncio
 class TestClientLiveOpenAPIAsync:
+
+    @pytest.fixture(autouse=True)
+    async def cleanup(self):
+        yield
+        # Force cleanup any remaining sessions
+        await asyncio.sleep(0.1)  # Allow pending callbacks to complete
 
     @pytest.mark.skipif(not os.environ.get("SERPERDEV_API_KEY", ""), reason="SERPERDEV_API_KEY not set or empty")
     @pytest.mark.skipif(not os.environ.get("OPENAI_API_KEY", ""), reason="OPENAI_API_KEY not set or empty")
