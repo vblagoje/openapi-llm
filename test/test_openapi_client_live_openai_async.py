@@ -114,7 +114,7 @@ class TestClientLiveOpenAPIAsync:
         from openapi_llm.utils import HttpClientError
 
         openapi_spec_url = "https://raw.githubusercontent.com/mendableai/firecrawl/main/apps/api/v1-openapi.json"
-        config = ClientConfig(openapi_spec=create_openapi_spec(openapi_spec_url), credentials=os.getenv("FIRECRAWL_API_KEY"))
+        config = ClientConfig(openapi_spec=create_openapi_spec(openapi_spec_url), credentials=os.getenv("FIRECRAWL_API_KEY"), allowed_operations=["scrapeAndExtractFromUrl"])
         client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         response = await client.chat.completions.create(
             model="gpt-4o",
