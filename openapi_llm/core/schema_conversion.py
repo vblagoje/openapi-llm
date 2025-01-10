@@ -156,41 +156,46 @@ def _convert_operation_to_openai_schema(
             "Invalid OpenAPI spec format provided. Could not extract function."
         )
         return {}
+
     function_name = resolved_spec.get("operationId")
     description = resolved_spec.get("description") or resolved_spec.get("summary", "")
-    schema: Dict[str, Any] = {"type": "object", "properties": {}}
-    # requestBody section
-    req_body_schema = (
-        resolved_spec.get("requestBody", {})
-        .get("content", {})
-        .get("application/json", {})
-        .get("schema", {})
-    )
-    if "properties" in req_body_schema:
-        for prop_name, prop_schema in req_body_schema["properties"].items():
-            schema["properties"][prop_name] = _parse_property_attributes(prop_schema)
-        if "required" in req_body_schema:
-            schema.setdefault("required", []).extend(req_body_schema["required"])
 
-    # parameters section
-    for param in resolved_spec.get("parameters", []):
-        if "schema" in param:
-            schema_dict = _parse_property_attributes(param["schema"])
-            # these attributes are not in param[schema] level but on param level
-            useful_attributes = ["description", "pattern", "enum"]
-            schema_dict.update(
-                {key: param[key] for key in useful_attributes if param.get(key)}
-            )
-            schema["properties"][param["name"]] = schema_dict
-            if param.get("required", False):
-                schema.setdefault("required", []).append(param["name"])
+    # Return valid schema even if no parameters are present
+    if function_name and description:
+        schema: Dict[str, Any] = {"type": "object", "properties": {}}
 
-    if function_name and description and schema["properties"]:
+        # requestBody section
+        req_body_schema = (
+            resolved_spec.get("requestBody", {})
+            .get("content", {})
+            .get("application/json", {})
+            .get("schema", {})
+        )
+        if "properties" in req_body_schema:
+            for prop_name, prop_schema in req_body_schema["properties"].items():
+                schema["properties"][prop_name] = _parse_property_attributes(prop_schema)
+            if "required" in req_body_schema:
+                schema.setdefault("required", []).extend(req_body_schema["required"])
+
+        # parameters section
+        for param in resolved_spec.get("parameters", []):
+            if "schema" in param:
+                schema_dict = _parse_property_attributes(param["schema"])
+                # these attributes are not in param[schema] level but on param level
+                useful_attributes = ["description", "pattern", "enum"]
+                schema_dict.update(
+                    {key: param[key] for key in useful_attributes if param.get(key)}
+                )
+                schema["properties"][param["name"]] = schema_dict
+                if param.get("required", False):
+                    schema.setdefault("required", []).append(param["name"])
+
         return {
             "name": function_name,
             "description": description,
             parameters_name: schema,
         }
+
     logger.warning(
         "Invalid OpenAPI spec format provided. Could not extract function from %s",
         resolved_spec,
