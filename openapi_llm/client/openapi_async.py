@@ -1,4 +1,6 @@
-from typing import Any, Optional, Union
+# pylint: disable=R0801
+# the above is disabling a check for duplicate code in the file taken from openapi_client.py
+from typing import Any, Optional
 
 import aiohttp
 
@@ -33,7 +35,7 @@ class AsyncOpenAPIClient:
     async def setup(self, session: Optional[aiohttp.ClientSession] = None) -> None:
         """
         Set up the client with an optional session. If no session is provided, creates a new one.
-        
+
         :param session: Optional aiohttp.ClientSession to use. If not provided, creates a new one.
         """
         if session:
@@ -111,4 +113,4 @@ class AsyncOpenAPIClientError(Exception):
 
 
 class AsyncHttpClientError(Exception):
-    """Exception raised for HTTP-related errors during async service invocation.""" 
+    """Exception raised for HTTP-related errors during async service invocation."""
