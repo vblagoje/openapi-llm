@@ -14,6 +14,11 @@ class AsyncOpenAPIClient:
     """
 
     def __init__(self, client_config: ClientConfig):
+        """
+        Initialize the AsyncOpenAPIClient with a ClientConfig.
+
+        :param client_config: The configuration for the OpenAPI client.
+        """
         self.client_config = client_config
         self._session: Optional[aiohttp.ClientSession] = None
         self._owns_session = False
@@ -56,12 +61,14 @@ class AsyncOpenAPIClient:
 
     async def invoke(self, function_payload: Any) -> Any:
         """
-        Invokes a function specified in the function payload asynchronously.
+        Invokes a remote endpoint asynchronously based on the function specification from an LLM.
 
-        :param function_payload: The function payload containing the details of the function to be invoked.
-        :returns: The response from the service after invoking the function.
-        :raises OpenAPIClientError: If the function invocation payload cannot be extracted from the function payload.
-        :raises HttpClientError: If an error occurs while sending the request and receiving the response.
+        :param function_payload: A dictionary containing:
+            - 'name': The OpenAPI operation ID to invoke
+            - 'arguments': The parameters to pass to the operation
+        :returns: The JSON response from the remote service
+        :raises AsyncOpenAPIClientError: If the function payload is invalid or cannot be processed
+        :raises AsyncHttpClientError: If the HTTP request fails or times out
         """
         fn_invocation_payload = {}
         try:
