@@ -57,8 +57,6 @@ pip install anthropic  # For Anthropic
 pip install cohere     # For Cohere
 ```
 
----
-
 ## Quick Start
 
 Below are minimal working examples for synchronous and asynchronous usage.
@@ -128,8 +126,6 @@ async def main():
 asyncio.run(main())
 ```
 
----
-
 ## Customization: `from_spec`
 
 Both **`OpenAPIClient`** and **`AsyncOpenAPIClient`** provide a classmethod called `from_spec`, which automatically:
@@ -168,8 +164,6 @@ OpenAPI-LLM focuses on the **core** of bridging LLM function calls with OpenAPI 
 ### OpenAPI Specification Validation
 
 This library does **not** automatically validate your specs. If your OpenAPI file is invalid, you might see errors during usage. Tools like [openapi-spec-validator](https://github.com/p1c2u/openapi-spec-validator) or [prance](https://github.com/RonnyPfannschmidt/prance) can help ensure correctness before you load your spec here.
-
----
 
 ## Requirements
 
@@ -231,4 +225,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## Author
 Vladimir Blagojevic (dovlex@gmail.com)
 
-Reviews and guidance by Madeesh Kannan
+Early reviews and guidance by Madeesh Kannan
