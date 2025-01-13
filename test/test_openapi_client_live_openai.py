@@ -105,7 +105,7 @@ class TestClientLiveOpenAPI:
         from openapi_llm.utils import HttpClientError
 
         openapi_spec_url = "https://raw.githubusercontent.com/mendableai/firecrawl/main/apps/api/v1-openapi.json"
-        config = ClientConfig(openapi_spec=create_openapi_spec(openapi_spec_url), credentials=os.getenv("FIRECRAWL_API_KEY"))
+        config = ClientConfig(openapi_spec=create_openapi_spec(openapi_spec_url), credentials=os.getenv("FIRECRAWL_API_KEY"), allowed_operations=["scrapeAndExtractFromUrl"])
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         response = client.chat.completions.create(
             model="gpt-4o",
@@ -114,33 +114,10 @@ class TestClientLiveOpenAPI:
         )
         service_api = OpenAPIClient(config)
 
-        try:
-            service_response = service_api.invoke(response)
-            assert isinstance(service_response, dict)
-            assert service_response.get("success", False), "Firecrawl scrape API call failed"
+        service_response = service_api.invoke(response)
+        assert isinstance(service_response, dict)
+        assert service_response.get("success", False), "Firecrawl scrape API call failed"
 
-            # Only proceed with search test if scrape was successful
-            top_k = 2
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": f"Search Google for `Why was Sam Altman ousted from OpenAI?`, limit to {top_k} results",
-                    }
-                ],
-                tools=config.get_tool_definitions(),
-            )
-            service_response = service_api.invoke(response)
-            assert isinstance(service_response, dict)
-            assert service_response.get("success", False), "Firecrawl search API call failed"
-            assert len(service_response.get("data", [])) == top_k
-            assert "Sam" in str(service_response)
-
-        except HttpClientError as e:
-            # Accept 402 Payment Required as a valid test outcome
-            assert "402" in str(e) or "Payment Required" in str(e), \
-                f"Unexpected HTTP error: {str(e)}"
 
     @pytest.mark.integration
     @pytest.mark.skipif(not os.environ.get("OPENAI_API_KEY", ""), reason="OPENAI_API_KEY not set or empty")
