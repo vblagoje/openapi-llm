@@ -6,9 +6,10 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+import pytest
 
 from openapi_llm.client.config import ClientConfig
-from openapi_llm.client.openapi import OpenAPIClient
+from openapi_llm.client.openapi import OpenAPIClient, OpenAPIClientError
 from .conftest import FastAPITestClient, create_openapi_spec
 
 """
@@ -116,3 +117,23 @@ class TestOpenAPI:
         }
         response = client.invoke(payload)
         assert response == {"greeting": "Hola, John from request_body_only!"}
+
+    def test_invoke_invalid_payload(self, test_files_path):
+        """Test error case in payload extraction"""
+        config = ClientConfig(
+            openapi_spec=create_openapi_spec(test_files_path / "yaml" / "serper.yml"),
+            credentials="dummy_key"
+        )
+        client = OpenAPIClient(config)
+        with pytest.raises(OpenAPIClientError):
+            client.invoke({"invalid": "payload"})
+
+    def test_invoke_missing_required_keys(self, test_files_path):
+        """Test error in _get_operation"""
+        config = ClientConfig(
+            openapi_spec=create_openapi_spec(test_files_path / "yaml" / "serper.yml"),
+            credentials="dummy_key"
+        )
+        client = OpenAPIClient(config)
+        with pytest.raises(OpenAPIClientError):
+            client.invoke({"some": "data"})
