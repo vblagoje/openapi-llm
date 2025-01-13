@@ -13,7 +13,7 @@ from openai import AsyncOpenAI
 import aiohttp
 
 from openapi_llm.client.config import ClientConfig
-from openapi_llm.client.openapi_async import AsyncOpenAPIClient
+from openapi_llm.client.openapi_async import AsyncHttpClientError, AsyncOpenAPIClient, AsyncOpenAPIClientError
 from .conftest import create_openapi_spec
 
 
@@ -208,3 +208,86 @@ class TestClientLiveOpenAPIAsync:
 
             service_response = await service_api.invoke(response)
             assert "inventions" in str(service_response)
+
+    @pytest.mark.asyncio
+    async def test_missing_required_payload_fields(self, test_files_path):
+        """Test handling of payloads missing required fields."""
+        config = ClientConfig(
+            openapi_spec=create_openapi_spec(test_files_path / "yaml" / "serper.yml"),
+            credentials="dummy_key"
+        )
+
+        incomplete_payload = {
+            "function": {
+                "arguments": {"query": "test"}
+                # Missing 'name' field
+            }
+        }
+
+        async with AsyncOpenAPIClient(config) as client:
+            with pytest.raises(AsyncOpenAPIClientError) as exc_info:
+                await client.invoke(incomplete_payload)
+            assert "does not contain 'name' or 'arguments' keys" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_invalid_session_cleanup(self, test_files_path):
+        """Test cleanup behavior with invalid session state."""
+        config = ClientConfig(
+            openapi_spec=create_openapi_spec(test_files_path / "yaml" / "serper.yml"),
+            credentials="dummy_key"
+        )
+
+        client = AsyncOpenAPIClient(config)
+        # Should not raise any errors even though session doesn't exist
+        await client.cleanup()
+
+        # Test double cleanup
+        await client.setup()
+        await client.cleanup()
+        await client.cleanup()  # Should not raise error
+
+    @pytest.mark.asyncio
+    async def test_session_reuse(self, test_files_path):
+        """Test proper session reuse and cleanup."""
+        config = ClientConfig(
+            openapi_spec=create_openapi_spec(test_files_path / "yaml" / "serper.yml"),
+            credentials="dummy_key"
+        )
+
+        # Create a shared session
+        async with aiohttp.ClientSession() as session:
+            client = AsyncOpenAPIClient(config)
+
+            # Setup with shared session
+            await client.setup(session=session)
+            assert client._session == session
+            assert not client._owns_session
+
+            # Cleanup shouldn't close the shared session
+            await client.cleanup()
+            assert not session.closed
+
+            # Setup again with the same session
+            await client.setup(session=session)
+            assert client._session == session
+            assert not client._owns_session
+
+    @pytest.mark.asyncio
+    async def test_http_error_handling(self, test_files_path):
+        """Test handling of HTTP errors."""
+        config = ClientConfig(
+            openapi_spec=create_openapi_spec(test_files_path / "yaml" / "serper.yml"),
+            credentials="invalid_key"  # This should cause authentication errors
+        )
+
+        client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY", "dummy_key"))
+        response = await client.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": "Do a serperdev google search: test query"}],
+            tools=config.get_tool_definitions(),
+        )
+
+        async with AsyncOpenAPIClient(config) as service_api:
+            with pytest.raises(AsyncHttpClientError) as exc_info:
+                await service_api.invoke(response)
+            assert "HTTP error occurred" in str(exc_info.value)         
