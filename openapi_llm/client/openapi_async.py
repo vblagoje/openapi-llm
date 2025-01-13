@@ -8,6 +8,8 @@ import aiohttp
 from openapi_llm.client.config import ClientConfig, create_client_config
 from openapi_llm.utils import apply_authentication, build_request
 
+# Ignore duplicate code in this file and in openapi.py
+# pylint: disable=R0801
 
 class AsyncOpenAPIClient:
     """
