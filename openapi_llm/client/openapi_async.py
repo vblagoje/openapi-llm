@@ -1,10 +1,11 @@
 # pylint: disable=R0801
 # the above is disabling a check for duplicate code in the file taken from openapi_client.py
-from typing import Any, Optional
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import aiohttp
 
-from openapi_llm.client.config import ClientConfig
+from openapi_llm.client.config import ClientConfig, create_client_config
 from openapi_llm.utils import apply_authentication, build_request
 
 
@@ -22,6 +23,17 @@ class AsyncOpenAPIClient:
         self.client_config = client_config
         self._session: Optional[aiohttp.ClientSession] = None
         self._owns_session = False
+
+    @property
+    def tool_definitions(self) -> List[Dict[str, Any]]:
+        """
+        Tool definitions derived from the OpenAPI specification suitable for LLM tool calling.
+
+        Returns:
+            A list of tool definitions that can be used with LLM function tool/calling.
+        """
+        return self.client_config.get_tool_definitions()
+
 
     async def __aenter__(self) -> "AsyncOpenAPIClient":
         """Enter the async context manager."""
@@ -114,6 +126,53 @@ class AsyncOpenAPIClient:
         except Exception as e:
             raise AsyncHttpClientError(f"An error occurred: {e}") from e
 
+    @classmethod
+    def from_spec(
+        cls,
+        openapi_spec: Union[str, Path],
+        config_factory: Optional[Callable[[Union[str, Path]], ClientConfig]] = None,
+        **kwargs
+    ) -> "AsyncOpenAPIClient":
+        """
+        Constructs an AsyncOpenAPIClient using provided OpenAPI specification.
+
+        This method provides an extensible mechanism for constructing clients. By default,
+        it uses the `create_client_config` factory to parse the OpenAPI spec and construct
+        a `ClientConfig`. Users can override the configuration logic by supplying their
+        own `config_factory` callable.
+
+        :param openapi_spec: OpenAPI spec as a file path, URL, or raw string.
+        :param config_factory: A factory function for creating the ClientConfig.
+            If not provided, defaults to using `create_client_config`.
+        :param kwargs: Additional ClientConfig parameters (e.g., credentials).
+        :returns: Configured AsyncOpenAPIClient instance.
+
+        Examples
+        --------
+        Default usage:
+
+        >>> client = AsyncOpenAPIClient.from_spec(
+        ...     "https://example.com/openapi.yaml",
+        ...     credentials="my_api_key"
+        ... )
+
+        Custom configuration with a factory:
+
+        >>> def custom_factory(spec: Union[str, Path], **kwargs):
+        ...     spec_obj = create_openapi_spec(spec)
+        ...     validate_spec(spec_obj.spec_dict)  # Custom validation
+        ...     return ClientConfig(openapi_spec=spec_obj, **kwargs)
+        ...
+        >>> client = AsyncOpenAPIClient.from_spec(
+        ...     "https://example.com/openapi.yaml",
+        ...     config_factory=custom_factory
+        ... )
+        """
+        if config_factory:
+            config = config_factory(openapi_spec, **kwargs)
+        else:
+            config = create_client_config(openapi_spec, **kwargs)
+        return cls(config)
 
 class AsyncOpenAPIClientError(Exception):
     """Exception raised for errors in the async OpenAPI client."""

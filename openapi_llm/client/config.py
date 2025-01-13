@@ -1,4 +1,6 @@
-from typing import Any, Callable, Dict, List, Optional
+import os
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from openapi_llm.core.auth import (
     create_api_key_authenticator,
@@ -112,3 +114,35 @@ class ClientConfig:
         raise ValueError(
             f"Unable to create authentication from provided credentials: {credentials}"
         )
+
+
+def create_client_config(
+    openapi_spec: Union[str, Path],
+    **kwargs
+) -> "ClientConfig":
+    """
+    Create a ClientConfig by loading the OpenAPI specification.
+
+    This method supports loading specifications from:
+    - A local file path
+    - A remote URL
+    - A raw specification string
+
+    :param openapi_spec: The OpenAPI spec provided as a file path, URL, or raw string.
+    :param kwargs: Additional arguments for ClientConfig creation.
+    :returns: Configured ClientConfig instance.
+    :raises ValueError: If the specification format is invalid or cannot be loaded.
+    """
+    if isinstance(openapi_spec, (str, Path)) and os.path.isfile(str(openapi_spec)):
+        spec = OpenAPISpecification.from_file(openapi_spec)
+    elif isinstance(openapi_spec, str):
+        if openapi_spec.startswith(("http://", "https://")):
+            spec = OpenAPISpecification.from_url(openapi_spec)
+        else:
+            spec = OpenAPISpecification.from_str(openapi_spec)
+    else:
+        raise ValueError(
+            "Invalid OpenAPI specification format. Expected file path, URL, or raw string."
+        )
+
+    return ClientConfig(openapi_spec=spec, **kwargs)
