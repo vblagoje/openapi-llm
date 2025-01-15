@@ -31,8 +31,7 @@ class AsyncOpenAPIClient:
         """
         Tool definitions derived from the OpenAPI specification suitable for LLM tool calling.
 
-        Returns:
-            A list of tool definitions that can be used with LLM function tool/calling.
+        :returns: A list of tool definitions that can be used with LLM tool/function calling.
         """
         return self.client_config.get_tool_definitions()
 
