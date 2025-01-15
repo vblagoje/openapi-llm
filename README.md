@@ -10,10 +10,18 @@
 A Python library that converts OpenAPI specifications into Large Language Model (LLM) tool/function definitions, enabling OpenAPI invocations through LLM generated tool calls.
 
 ## Table of Contents
+
+- [Overview](#overview)
 - [Features](#features)
 - [Installation](#installation)
-- [Library Scope](#library-scope)
+  - [Supported Python Versions](#supported-python-versions)
+  - [LLM Provider Dependencies](#llm-provider-dependencies)
 - [Quick Start](#quick-start)
+  - [Synchronous Example](#synchronous-example)
+  - [Asynchronous Example](#asynchronous-example)
+- [Customization: `from_spec`](#customization-from_spec)
+- [Library Scope](#library-scope)
+  - [OpenAPI Specification Validation](#openapi-specification-validation)
 - [Requirements](#requirements)
 - [Development Setup](#development-setup)
 - [Testing](#testing)
@@ -41,174 +49,121 @@ pip install openapi-llm
 
 ### LLM Provider Dependencies
 
-This library focuses on OpenAPI-to-LLM conversion and doesn't include LLM provider libraries by default. Install the ones you need:
+By default, **OpenAPI-LLM** does not install any particular LLM provider. You can install exactly the ones you need:
 
 ```bash
-# For OpenAI
-pip install openai
-
-# For Anthropic
-pip install anthropic
-
-# For Cohere
-pip install cohere
-```
-
-## Library Scope
-
-OpenAPI-LLM provides core functionality for converting OpenAPI specifications into LLM-compatible tool/function definitions. It intentionally does not provide an opinionated, high-level interface for OpenAPI-LLM interactions. Users are encouraged to develop their own thin application layer above this library that suits their specific needs and preferences for OpenAPI-LLM integration.
-
-### OpenAPI Specification Validation
-
-This library does not perform OpenAPI specification validation. It is the user's responsibility to ensure that the provided OpenAPI specifications are valid. We recommend using established validation tools such as:
-
-- [openapi-spec-validator](https://github.com/p1c2u/openapi-spec-validator)
-- [prance](https://github.com/RonnyPfannschmidt/prance)
-- [Swagger Editor](https://editor.swagger.io/)
-
-Example of validating a spec before using it with openapi-llm:
-
-```python
-from openapi_spec_validator import validate_spec
-import yaml
-
-# Load and validate your OpenAPI spec
-with open('your_spec.yaml', 'r') as f:
-    spec_dict = yaml.safe_load(f)
-validate_spec(spec_dict)
+pip install openai     # For OpenAI
+pip install anthropic  # For Anthropic
+pip install cohere     # For Cohere
 ```
 
 ## Quick Start
 
-The library provides both synchronous and asynchronous clients for working with OpenAPI specifications.
+Below are minimal working examples for synchronous and asynchronous usage.
 
-### Sync Client
+### Synchronous Example
 
 ```python
 import os
 from openai import OpenAI
-
-from openapi_llm.client.config import ClientConfig
 from openapi_llm.client.openapi import OpenAPIClient
-from openapi_llm.core.spec import OpenAPISpecification
 
-
-# Configure the OpenAPI client with SerperDev API spec and credentials
-config = ClientConfig(
-    openapi_spec=OpenAPISpecification.from_url("https://bit.ly/serperdev_openapi"), 
+# Create the client from a spec URL (or file path, or raw string)
+service_api = OpenAPIClient.from_spec(
+    openapi_spec="https://bit.ly/serperdev_openapi",
     credentials=os.getenv("SERPERDEV_API_KEY")
 )
 
-# Initialize OpenAI client
+# Initialize your chosen LLM provider (e.g., OpenAI)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Create a chat completion with tool definitions
+# Ask the LLM to call the SerperDev API
 response = client.chat.completions.create(
     model="gpt-4o",
     messages=[{"role": "user", "content": "Do a serperdev google search: Who was Nikola Tesla?"}],
-    tools=config.get_tool_definitions(),
+    tools=service_api.tool_definitions,  # LLM tool definitions from the client
 )
 
-# Execute the API call based on the LLM's response
-service_api = OpenAPIClient(config)
+# Now actually invoke the OpenAPI call based on the LLM's generated tool call
 service_response = service_api.invoke(response)
+assert "inventions" in str(service_response)
 ```
 
-### Async Client
-
-The library provides several patterns for asynchronous operations:
-
-#### 1. Using async context manager (recommended):
+### Asynchronous Example
 
 ```python
 import os
 import asyncio
+from openapi_llm.client.openapi_async import AsyncOpenAPIClient
 from openai import AsyncOpenAI
 
-from openapi_llm.client.config import ClientConfig
-from openapi_llm.client.openapi_async import AsyncOpenAPIClient
-from openapi_llm.core.spec import OpenAPISpecification
-
-
 async def main():
-    # Configure the OpenAPI client with SerperDev API spec and credentials
-    config = ClientConfig(
-        openapi_spec=OpenAPISpecification.from_url("https://bit.ly/serperdev_openapi"), 
-        credentials=os.getenv("SERPERDEV_API_KEY")
+    # Firecrawl openapi spec
+    openapi_spec_url = "https://raw.githubusercontent.com/mendableai/firecrawl/main/apps/api/v1-openapi.json"
+
+    # Create the async client
+    service_api = AsyncOpenAPIClient.from_spec(
+        openapi_spec=openapi_spec_url,
+        credentials=os.getenv("FIRECRAWL_API_KEY")
     )
 
-    # Initialize async OpenAI client
+    # Initialize an async LLM (OpenAI)
     client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    # Create a chat completion with tool definitions
+    # Ask the LLM to call Firecrawl's scraping endpoint
     response = await client.chat.completions.create(
         model="gpt-4o",
-        messages=[{"role": "user", "content": "Do a serperdev google search: Who was Nikola Tesla?"}],
-        tools=config.get_tool_definitions(),
+        messages=[{"role": "user", "content": "Scrape URL: https://news.ycombinator.com/"}],
+        tools=service_api.tool_definitions,
     )
 
-    # Execute the API call based on the LLM's response
-    async with AsyncOpenAPIClient(config) as service_api:
-        service_response = await service_api.invoke(response)
+    # Use context manager to manage aiohttp sessions
+    async with service_api as api:
+        service_response = await api.invoke(response)
+        assert isinstance(service_response, dict)
+        assert service_response.get("success", False), "Firecrawl scrape API call failed"
 
-# Run the async function
 asyncio.run(main())
 ```
 
-#### 2. Using setup/cleanup methods:
+## Customization: `from_spec`
+
+Both **`OpenAPIClient`** and **`AsyncOpenAPIClient`** provide a classmethod called `from_spec`, which automatically:
+
+- Loads the OpenAPI specification from a file path, URL, or raw string.
+- Builds a `ClientConfig` for you.
+- Constructs the client instance.
+
+For example, you can validate the spec before using it by supplying a custom `config_factory`:
 
 ```python
-async def main():
-    config = ClientConfig(
-        openapi_spec=OpenAPISpecification.from_url("https://bit.ly/serperdev_openapi"), 
-        credentials=os.getenv("SERPERDEV_API_KEY")
-    )
-    client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    response = await client.chat.completions.create(
-        model="gpt-4o",
-        messages=[{"role": "user", "content": "Do a serperdev google search: Who was Nikola Tesla?"}],
-        tools=config.get_tool_definitions(),
-    )
+from openapi_llm.client.config import ClientConfig, create_client_config
+from openapi_llm.client.openapi import OpenAPIClient
+from openapi_spec_validator import validate_spec
 
-    # Create and set up the client
-    service_api = AsyncOpenAPIClient(config)
-    await service_api.setup()
+def my_custom_config_factory(openapi_spec: str, **kwargs) -> ClientConfig:
+    config = create_client_config(openapi_spec, **kwargs)
+    validate_spec(config.openapi_spec.spec_dict)
+    return config
 
-    try:
-        service_response = await service_api.invoke(response)
-    finally:
-        await service_api.cleanup()
+# Usage:
+client = OpenAPIClient.from_spec(
+    openapi_spec="path/to/local_spec.yaml",
+    config_factory=my_custom_config_factory,
+    credentials="secret_token"
+)
 ```
 
-#### 3. Using a shared aiohttp session:
+This design gives you **full control** over the spec-loading and configuration-building process while still offering simple defaults.
 
-```python
-import aiohttp
 
-async def main():
-    config = ClientConfig(
-        openapi_spec=OpenAPISpecification.from_url("https://bit.ly/serperdev_openapi"), 
-        credentials=os.getenv("SERPERDEV_API_KEY")
-    )
-    client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    response = await client.chat.completions.create(
-        model="gpt-4o",
-        messages=[{"role": "user", "content": "Do a serperdev google search: Who was Nikola Tesla?"}],
-        tools=config.get_tool_definitions(),
-    )
+## Library Scope
 
-    # Use a shared session
-    async with aiohttp.ClientSession() as session:
-        service_api = AsyncOpenAPIClient(config)
-        await service_api.setup(session=session)
-        service_response = await service_api.invoke(response)
-```
+OpenAPI-LLM focuses on the **core** of bridging LLM function calls with OpenAPI specifications. It does **not** perform advanced validation or impose a high-level framework. You can integrate it into your existing app or build additional logic on top.
 
-These examples demonstrate:
-- Loading an OpenAPI specification from a URL
-- Integrating with OpenAI's function calling
-- Handling API authentication
-- Converting and executing OpenAPI calls based on LLM responses
+### OpenAPI Specification Validation
+
+This library does **not** automatically validate your specs. If your OpenAPI file is invalid, you might see errors during usage. Tools like [openapi-spec-validator](https://github.com/p1c2u/openapi-spec-validator) or [prance](https://github.com/RonnyPfannschmidt/prance) can help ensure correctness before you load your spec here.
 
 ## Requirements
 
@@ -220,33 +175,26 @@ These examples demonstrate:
 
 ## Development Setup
 
-1. Clone the repository
-
-```bash
-git clone https://github.com/vblagoje/openapi-llm.git
-```
-
-2. Install hatch if you haven't already
-
-```bash
-pip install hatch
-```
-
-3. Install pre-commit hooks
-
-```bash
-pre-commit install
-```
-
-4. Install desired LLM provider dependencies (as needed)
-
-```bash
-pip install openai anthropic cohere
-```
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/vblagoje/openapi-llm.git
+   ```
+2. **Install Hatch** (if you haven’t already):
+   ```bash
+   pip install hatch
+   ```
+3. **Install Pre-Commit Hooks**:
+   ```bash
+   pip install pre-commit
+   ```
+4. **Install Desired LLM Provider Dependencies** (e.g., openai, anthropic, cohere):
+   ```bash
+   pip install openai anthropic cohere
+   ```
 
 ## Testing
 
-Run tests using hatch:
+Run tests using [hatch](https://github.com/pypa/hatch):
 
 ```bash
 # Unit tests
@@ -264,7 +212,7 @@ hatch run test:lint
 
 ## License
 
-MIT License - See [LICENSE](LICENSE) for details.
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for more details.
 
 ## Security
 
@@ -277,4 +225,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## Author
 Vladimir Blagojevic (dovlex@gmail.com)
 
-Reviews and guidance by Madeesh Kannan
+Early reviews and guidance by Madeesh Kannan
