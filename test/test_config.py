@@ -14,7 +14,7 @@ class TestConfig:
     def test_create_client_config_from_url(self):
         """Test creating config from URL"""
         spec_url = "https://raw.githubusercontent.com/example/api/main/openapi.json"
-        with pytest.raises(ConnectionError):
+        with pytest.raises(ValueError):
             create_client_config(spec_url)
 
     def test_create_client_config_from_str(self, test_files_path):

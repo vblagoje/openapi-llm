@@ -134,15 +134,25 @@ def create_client_config(
     :raises ValueError: If the specification format is invalid or cannot be loaded.
     """
     if isinstance(openapi_spec, (str, Path)) and os.path.isfile(str(openapi_spec)):
-        spec = OpenAPISpecification.from_file(openapi_spec)
+        try:
+            spec = OpenAPISpecification.from_file(openapi_spec)
+        except Exception as e:
+            raise ValueError(f"Failed to load OpenAPI specification from file '{openapi_spec}': {e}") from e
     elif isinstance(openapi_spec, str):
         if openapi_spec.startswith(("http://", "https://")):
-            spec = OpenAPISpecification.from_url(openapi_spec)
+            try:
+                spec = OpenAPISpecification.from_url(openapi_spec)
+            except Exception as e:
+                raise ValueError(f"Failed to load OpenAPI specification from URL '{openapi_spec}': {e}") from e
         else:
-            spec = OpenAPISpecification.from_str(openapi_spec)
+            try:
+                spec = OpenAPISpecification.from_str(openapi_spec)
+            except Exception as e:
+                raise ValueError(f"Failed to parse OpenAPI specification from string: {e}") from e
     else:
         raise ValueError(
-            "Invalid OpenAPI specification format. Expected file path, URL, or raw string."
+            f"Invalid OpenAPI specification format '{type(openapi_spec).__name__}'. "
+            "Expected file path, URL, or raw string."
         )
 
     return ClientConfig(openapi_spec=spec, **kwargs)
