@@ -85,6 +85,28 @@ class TestClientLiveOpenAPI:
         service_response = service_api.invoke(response)
         assert "deepset" in str(service_response)
 
+
+    @pytest.mark.skipif(not os.environ.get("OPENAI_API_KEY", ""), reason="OPENAI_API_KEY not set or empty")
+    @pytest.mark.integration
+    def test_github_json_spec(self):
+        service_api = OpenAPIClient.from_spec(
+            openapi_spec="https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json",
+            allowed_operations=["search/repos"]
+        )
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "user",
+                    "content": "Invoke search/repos tool with query 'deepset-ai' and 'haystack'",
+                }
+            ],
+            tools=service_api.tool_definitions,
+        )
+        service_response = service_api.invoke(response)
+        assert "deepset" in str(service_response)
+
     @pytest.mark.skipif(not os.environ.get("FIRECRAWL_API_KEY", ""), reason="FIRECRAWL_API_KEY not set or empty")
     @pytest.mark.skipif(not os.environ.get("OPENAI_API_KEY", ""), reason="OPENAI_API_KEY not set or empty")
     @pytest.mark.integration
