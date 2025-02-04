@@ -59,7 +59,7 @@ class ClientConfig:
         :raises ValueError: If the credentials type is not supported.
         """
         security_schemes = self.openapi_spec.get_security_schemes()
-        if not self.credentials:
+        if not self.credentials or not security_schemes:
             return lambda security_scheme, request: None  # No-op function
         if isinstance(self.credentials, str):
             return self._create_authenticator_from_credentials(
