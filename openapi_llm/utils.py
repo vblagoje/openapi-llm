@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union, ca
 import requests
 
 if TYPE_CHECKING:
-    from openapi_llm.core.spec import Operation
     from openapi_llm.client import ClientConfig
+    from openapi_llm.core.spec import Operation
 
 logger = logging.getLogger(__name__)
 
