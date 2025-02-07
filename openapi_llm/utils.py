@@ -197,10 +197,7 @@ def build_request(operation: "Operation", config: "ClientConfig", **kwargs) -> D
             path = path.replace(f"{{{parameter['name']}}}", str(param_value))
         elif parameter.get("required", False):
             raise ValueError(f"Missing required path parameter: {parameter['name']}")
-    if config.url and isinstance(config.url, str):
-        url = config.url + path
-    else:
-        url = operation.get_server(config.url) + path
+    url = config.url + path if isinstance(config.url, str) else operation.get_server(config.url) + path
     # method
     method = operation.method.lower()
     # headers
