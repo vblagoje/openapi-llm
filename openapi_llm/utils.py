@@ -8,6 +8,7 @@ import requests
 
 if TYPE_CHECKING:
     from openapi_llm.core.spec import Operation
+    from openapi_llm.client import ClientConfig
 
 logger = logging.getLogger(__name__)
 
@@ -178,11 +179,12 @@ class HttpClientError(Exception):
     """Exception raised for errors in the HTTP client."""
 
 
-def build_request(operation: "Operation", **kwargs) -> Dict[str, Any]:
+def build_request(operation: "Operation", config: "ClientConfig", **kwargs) -> Dict[str, Any]:
     """
     Build an HTTP request for the operation.
 
     :param operation: The operation to build the request for.
+    :param config: The client configuration.
     :param kwargs: The arguments to use for building the request.
     :returns: The HTTP request as a dictionary.
     :raises ValueError: If a required parameter is missing.
@@ -195,7 +197,10 @@ def build_request(operation: "Operation", **kwargs) -> Dict[str, Any]:
             path = path.replace(f"{{{parameter['name']}}}", str(param_value))
         elif parameter.get("required", False):
             raise ValueError(f"Missing required path parameter: {parameter['name']}")
-    url = operation.get_server() + path
+    if config.url and isinstance(config.url, str):
+        url = config.url + path
+    else:
+        url = operation.get_server(config.url) + path
     # method
     method = operation.method.lower()
     # headers
