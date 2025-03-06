@@ -28,6 +28,7 @@ class ClientConfig:
         request_sender: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
         llm_provider: Optional[LLMProvider] = None,
         allowed_operations: Optional[List[str]] = None,
+        base_url: Union[str, int] = 0,
     ):
         """
         Initialize client configuration.
@@ -38,6 +39,9 @@ class ClientConfig:
         :param llm_provider: LLM provider implementation to use.
         :param allowed_operations: a list of operationIds to be converted to tools
         :param converter_config: Configuration for OpenAPI to LLM function conversion.
+        :param base_url: The root URL of the API server (if provided as a string) when the OpenAPI spec lacks
+                         a `servers` entry, or an index to select from the spec's `servers` list
+                         (if provided as an integer and the list exists).
         :raises ValueError: If the OpenAPI specification format is invalid.
         """
         self.openapi_spec = openapi_spec
@@ -47,6 +51,7 @@ class ClientConfig:
         self.converter_config = ConverterConfig(
             filter_fn=lambda f: f["operationId"] in allowed_operations
         ) if allowed_operations else None
+        self.base_url = base_url
 
     def get_authenticator(self) -> Callable[[Dict[str, Any], Dict[str, Any]], Any]:
         """

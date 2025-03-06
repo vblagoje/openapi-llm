@@ -104,7 +104,7 @@ class AsyncOpenAPIClient:
         operation = self.client_config.openapi_spec.find_operation_by_id(
             fn_invocation_payload["name"]
         )
-        request = build_request(operation, **fn_invocation_payload["arguments"])
+        request = build_request(operation, self.client_config, **fn_invocation_payload["arguments"])
         apply_authentication(self.client_config.get_authenticator(), operation, request)
 
         if not self._session:
