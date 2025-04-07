@@ -34,9 +34,9 @@ def normalize_tool_definition(data: Dict[str, Any]) -> Dict[str, Any]:
     for key, value in data.items():
         # all LLMs tool definitions have tool (function) name and description on the same level
         # if we find it then normalize the function name
-        if key == "name" and "description" in data.keys():
+        if key == "name" and "description" in data.keys() and isinstance(data["description"], str):
             normalized_data[key] = normalize_function_name(value)
-        elif key == "description":
+        elif key == "description" and isinstance(value, str):
             normalized_data[key] = value[:1024]
         elif isinstance(value, dict):
             # recursively normalize nested descriptions (e.g. tool parameters)
